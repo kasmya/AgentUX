@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 from sqlmodel import Session, select
 from logger import engine, Event
 import csv, io
+from typing import Optional
 
 app = FastAPI()
 app.add_middleware(
@@ -30,6 +31,18 @@ class Turn(BaseModel):
     participant_id: str
     condition: str
     message: str
+
+class LogEvent(BaseModel):
+    session_id: str
+    participant_id: str
+    condition: str
+    event_type: str
+    payload: dict
+
+@app.post("/log")
+def log_event(evt: LogEvent):
+    log(evt.session_id, evt.participant_id, evt.condition, evt.event_type, evt.payload)
+    return {"ok": True}
 
 def sse(obj): 
     return f"data: {json.dumps(obj)}\n\n"
