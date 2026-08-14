@@ -1,24 +1,28 @@
 import { useState } from "react";
 import { logEvent } from "../api";
 
-function ActionCard({ action, session_id, participant_id, condition }) {
+function ActionCard({ action, session_id, participant_id, condition, onStatusChange }) {
   const [status, setStatus] = useState(null); // null | "accepted" | "rejected"
   const [traceOpen, setTraceOpen] = useState(false);
   const [history, setHistory] = useState([]); // for undo
 
   const pushHistory = (prevStatus) => {
-    setHistory((h) => [...h, prevStatus]);
+    if (prevStatus !== null) {
+      setHistory((h) => [...h, prevStatus]);
+    }
   };
 
   const handleAccept = () => {
     pushHistory(status);
     setStatus("accepted");
+    onStatusChange && onStatusChange("accepted");
     logEvent(session_id, participant_id, condition, "action_accepted", { id: action.id });
   };
 
   const handleReject = () => {
     pushHistory(status);
     setStatus("rejected");
+    onStatusChange && onStatusChange("rejected");
     logEvent(session_id, participant_id, condition, "action_rejected", { id: action.id });
   };
 
@@ -38,6 +42,7 @@ function ActionCard({ action, session_id, participant_id, condition }) {
     const prev = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
     setStatus(prev);
+    onStatusChange && onStatusChange(prev);
     logEvent(session_id, participant_id, condition, "undo", { id: action.id, reverted_to: prev });
   };
 
@@ -49,7 +54,10 @@ function ActionCard({ action, session_id, participant_id, condition }) {
     }
   };
 
-  const hasTraceData = action.reasoning || action.confidence !== undefined || (action.citations && action.citations.length > 0);
+  const hasTraceData =
+    action.reasoning ||
+    action.confidence !== undefined ||
+    (action.citations && action.citations.length > 0);
 
   return (
     <div

@@ -21,7 +21,9 @@ const CONDITION = "transparency_on";
 function App() {
   const [data, setData] = useState(null);
   const [actions, setActions] = useState([]);
+  const [statuses, setStatuses] = useState({}); // id -> "accepted" | "rejected" | undefined
   const [error, setError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -52,8 +54,33 @@ function App() {
     });
   };
 
+  const handleStatusChange = (id, status) => {
+    setStatuses((s) => ({ ...s, [id]: status }));
+  };
+
+  const decidedCount = Object.keys(statuses).filter((id) => statuses[id]).length;
+  const allDecided = actions.length > 0 && decidedCount === actions.length;
+
+  const handleSubmit = () => {
+    logEvent(SESSION_ID, PARTICIPANT_ID, CONDITION, "task_end", {
+      task_id: data.task_id,
+      decided_count: decidedCount,
+      total: actions.length,
+    });
+    setSubmitted(true);
+  };
+
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (!data) return <div className="p-6">Loading...</div>;
+
+  if (submitted) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 text-center">
+        <h1 className="text-xl font-semibold mb-2">Triage submitted</h1>
+        <p className="text-gray-500">Thank you — your responses have been recorded.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -71,10 +98,24 @@ function App() {
               session_id={SESSION_ID}
               participant_id={PARTICIPANT_ID}
               condition={CONDITION}
+              onStatusChange={(status) => handleStatusChange(action.id, status)}
             />
           ))}
         </SortableContext>
       </DndContext>
+
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 mt-4 flex justify-between items-center">
+        <span className="text-sm text-gray-500">
+          {decidedCount} / {actions.length} decided
+        </span>
+        <button
+          onClick={handleSubmit}
+          disabled={!allDecided}
+          className="px-4 py-2 rounded bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-40"
+        >
+          Submit Triage
+        </button>
+      </div>
     </div>
   );
 }
