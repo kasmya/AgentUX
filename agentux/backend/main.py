@@ -1,4 +1,5 @@
-from scenario import SCENARIO
+from assign import condition_order
+from scenario import SCENARIOS
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -75,12 +76,14 @@ def agent(turn: Turn):
 
 # --- Scenario route ---
 @app.get("/scenario")
-def get_scenario(session_id: str, participant_id: str, condition: str):
+def get_scenario(session_id: str, participant_id: str, condition: str, scenario: str = "ticket_triage_v1"):
+    data = SCENARIOS.get(scenario, SCENARIOS["ticket_triage_v1"])
+
     log(session_id, participant_id, condition, "task_start",
-        {"task_id": SCENARIO["task_id"]})
+        {"task_id": data["task_id"]})
 
     actions = []
-    for a in SCENARIO["actions"]:
+    for a in data["actions"]:
         item = {"id": a["id"], "label": a["label"]}   # always visible
         if condition == "transparency_on":
             item |= {
@@ -95,8 +98,8 @@ def get_scenario(session_id: str, participant_id: str, condition: str):
             {"id": a["id"], "is_correct": a["is_correct"]})
 
     return {
-        "task_id": SCENARIO["task_id"],
-        "prompt": SCENARIO["prompt"],
+        "task_id": data["task_id"],
+        "prompt": data["prompt"],
         "actions": actions
     }
 
@@ -110,3 +113,8 @@ def export():
     for e in rows:
         w.writerow([e.ts, e.session_id, e.participant_id, e.condition, e.event_type, e.payload])
     return buf.getvalue()
+
+@app.get("/assign")
+def get_assignment(participant_number: int):
+    order = condition_order(participant_number)
+    return {"participant_number": participant_number, "order": order}
