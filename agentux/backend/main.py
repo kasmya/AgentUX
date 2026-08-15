@@ -118,3 +118,25 @@ def export():
 def get_assignment(participant_number: int):
     order = condition_order(participant_number)
     return {"participant_number": participant_number, "order": order}
+
+class SurveyResponse(BaseModel):
+    session_id: str
+    participant_id: str
+    condition: str
+    trust_1: int       # 1-7: "I trusted the agent's suggestions"
+    trust_2: int       # 1-7: "I felt in control of the agent's actions"
+    trust_3: int       # 1-7: "I understood why the agent made its suggestions"
+    sus_scores: list[int]  # 10 items, 1-5 each, standard SUS
+    comments: Optional[str] = None
+
+@app.post("/survey")
+def submit_survey(resp: SurveyResponse):
+    payload = {
+        "trust_1": resp.trust_1,
+        "trust_2": resp.trust_2,
+        "trust_3": resp.trust_3,
+        "sus_scores": resp.sus_scores,
+        "comments": resp.comments,
+    }
+    log(resp.session_id, resp.participant_id, resp.condition, "survey_submitted", payload)
+    return {"ok": True}

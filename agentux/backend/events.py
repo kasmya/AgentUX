@@ -8,5 +8,6 @@ EVENTS = {
     "ACTION_REJECTED": "action_rejected",
     "UNDO":            "undo",
     "CANCEL":          "cancel",
-    "TRACE_OPENED":    "trace_opened",
+    "TRACE_OPENED":    "trace_opened",    
+    "SURVEY_SUBMITTED":  "survey_submitted",
 }

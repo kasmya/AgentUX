@@ -12,6 +12,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import SortableActionCard from "./components/SortableActionCard";
+import SurveyScreen from "./SurveyScreen";
 import { logEvent } from "./api";
 
 function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onComplete }) {
@@ -20,7 +21,8 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
   const [statuses, setStatuses] = useState({});
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const hasFetched = useRef(false);   // 👈 guard against duplicate fetch/log
+  const [surveyDone, setSurveyDone] = useState(false);
+  const hasFetched = useRef(false);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -65,7 +67,18 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (!data) return <div className="p-6">Loading...</div>;
 
-  if (submitted) {
+  if (submitted && !surveyDone) {
+    return (
+      <SurveyScreen
+        sessionId={sessionId}
+        participantId={participantId}
+        condition={condition}
+        onSubmit={() => setSurveyDone(true)}
+      />
+    );
+  }
+
+  if (submitted && surveyDone) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
         <h1 className="text-xl font-semibold mb-2">Task complete</h1>
