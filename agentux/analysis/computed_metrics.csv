@@ -1,0 +1,8 @@
+session_id,participant_id,condition,n_wrong_recommendations,error_detection_rate,inappropriate_acceptance_rate,task_time_seconds,trust_mean,sus_score
+s1,p1,transparency_off,3,0.0,0.0,,,
+s1,p1,transparency_on,3,0.0,1.0,101105.69867,6.0,75.0
+sess_1_1786730608972,p1,transparency_off,3,0.333,0.667,13.87807,,
+sess_1_1786730608972,p1,transparency_on,3,0.0,0.0,,,
+sess_1_1786777462614,p1,transparency_off,3,0.333,0.667,20.307065,,
+sess_2_1786814205143,p2,transparency_on,3,0.667,0.333,13.241957,5.33,45.0
+sess_2_1786814205143,p2,transparency_off,3,0.0,0.0,,,
