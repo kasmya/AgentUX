@@ -1,11 +1,13 @@
 import { useState } from "react";
 import EntryScreen from "./EntryScreen";
 import TaskRunner from "./TaskRunner";
+import InstructionsScreen from "./InstructionsScreen"; // ✅ new import
 
 function App() {
   const [session, setSession] = useState(null); // { participantId, sessionId, conditionOrder }
   const [phase, setPhase] = useState(0); // 0 = first condition, 1 = second condition
   const [finished, setFinished] = useState(false);
+  const [agreed, setAgreed] = useState(false); // ✅ new state
 
   const handleStart = (s) => setSession(s);
 
@@ -17,6 +19,8 @@ function App() {
     }
   };
 
+  // ✅ render flow: instructions → entry → task → finish
+  if (!agreed) return <InstructionsScreen onAgree={() => setAgreed(true)} />;
   if (!session) return <EntryScreen onStart={handleStart} />;
 
   if (finished) {
