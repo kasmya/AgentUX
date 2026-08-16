@@ -1,0 +1,4 @@
+
+# runtime data — never commit
+backend/agentux.db
+backend/participant_counter.txt
