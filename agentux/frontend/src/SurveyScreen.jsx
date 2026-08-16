@@ -22,21 +22,24 @@ const SUS_ITEMS = [
 function ScaleInput({ name, value, onChange, max, lowLabel, highLabel }) {
   return (
     <div className="flex items-center gap-3 mt-2">
-      <span className="text-xs text-gray-400 w-24">{lowLabel}</span>
+      <span className="text-xs text-slate w-24">{lowLabel}</span>
       {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-        <label key={n} className="flex flex-col items-center text-xs text-gray-600 cursor-pointer">
+        <label
+          key={n}
+          className="flex flex-col items-center text-xs text-slate cursor-pointer"
+        >
           <input
             type="radio"
             name={name}
             value={n}
             checked={value === n}
             onChange={() => onChange(n)}
-            className="w-5 h-5 accent-purple-600 cursor-pointer"
+            className="w-5 h-5 accent-signal cursor-pointer rounded-none"
           />
-          {n}
+          <span className="font-mono">{n}</span>
         </label>
       ))}
-      <span className="text-xs text-gray-400 w-24 text-right">{highLabel}</span>
+      <span className="text-xs text-slate w-24 text-right">{highLabel}</span>
     </div>
   );
 }
@@ -77,16 +80,16 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-xl font-semibold mb-1">Quick survey</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="font-display text-2xl font-semibold mb-2 text-ink">Quick survey</h1>
+      <p className="text-sm text-slate mb-6">
         Rate your experience with this version of the task.
       </p>
 
-      <div className="mb-8">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Trust & control</h2>
+      <div className="mb-8 border-t border-line pt-4">
+        <h2 className="text-sm font-medium text-slate mb-3">Trust & control</h2>
         {TRUST_QUESTIONS.map((q) => (
           <div key={q.key} className="mb-4">
-            <p className="text-sm text-gray-800">{q.text}</p>
+            <p className="text-sm text-ink">{q.text}</p>
             <ScaleInput
               name={q.key}
               value={trust[q.key]}
@@ -99,13 +102,13 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         ))}
       </div>
 
-      <div className="mb-8">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">
+      <div className="mb-8 border-t border-line pt-4">
+        <h2 className="text-sm font-medium text-slate mb-3">
           Usability (System Usability Scale)
         </h2>
         {SUS_ITEMS.map((text, i) => (
           <div key={i} className="mb-4">
-            <p className="text-sm text-gray-800">{text}</p>
+            <p className="text-sm text-ink">{text}</p>
             <ScaleInput
               name={`sus_${i}`}
               value={sus[i]}
@@ -120,14 +123,14 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         ))}
       </div>
 
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-700 block mb-2">
+      <div className="mb-6 border-t border-line pt-4">
+        <label className="text-sm font-medium text-slate block mb-2">
           Any other comments? (optional)
         </label>
         <textarea
           value={comments}
           onChange={(e) => setComments(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 text-sm"
+          className="w-full border border-line bg-paper p-2 text-sm"
           rows={3}
         />
       </div>
@@ -136,7 +139,7 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
-        className="px-4 py-2 rounded bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-40 w-full"
+        className="px-4 py-2 rounded-none bg-signal text-white text-sm hover:opacity-90 disabled:opacity-30 w-full"
       >
         {submitting ? "Submitting..." : "Submit survey"}
       </button>

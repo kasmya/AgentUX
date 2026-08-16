@@ -5,9 +5,9 @@ function InstructionsScreen({ onAgree }) {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-xl font-semibold mb-4">Before you begin</h1>
+      <h1 className="font-display text-2xl font-semibold mb-4 text-ink">Before you begin</h1>
 
-      <div className="text-sm text-gray-700 space-y-3 mb-6">
+      <div className="text-sm text-slate space-y-3 mb-6 font-body">
         <p>
           You'll be reviewing AI-generated recommendations for 10 customer
           support tickets, twice, with a short survey after each set.
@@ -32,12 +32,12 @@ function InstructionsScreen({ onAgree }) {
         </p>
       </div>
 
-      <label className="flex items-start gap-2 mb-6 text-sm text-gray-800 cursor-pointer">
+      <label className="flex items-start gap-2 mb-6 text-sm text-ink cursor-pointer">
         <input
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-1 w-4 h-4 accent-purple-600 cursor-pointer"
+          className="mt-1 w-4 h-4 accent-signal cursor-pointer rounded-none"
         />
         I understand what this study involves and agree to take part.
       </label>
@@ -46,7 +46,7 @@ function InstructionsScreen({ onAgree }) {
         type="button"
         onClick={onAgree}
         disabled={!agreed}
-        className="px-4 py-2 rounded bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-40 w-full"
+        className="px-4 py-2 rounded-none bg-signal text-white text-sm hover:opacity-90 disabled:opacity-30 w-full"
       >
         Begin
       </button>

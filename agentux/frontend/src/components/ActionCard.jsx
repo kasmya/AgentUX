@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { logEvent } from "../api";
 
+const CATEGORIES = ["Billing", "Technical", "Account"];
+
 function ActionCard({ action, session_id, participant_id, condition, onStatusChange }) {
   const [status, setStatus] = useState(null); // null | "accepted" | "rejected"
   const [traceOpen, setTraceOpen] = useState(false);
   const [history, setHistory] = useState([]); // for undo
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const pushHistory = (prevStatus) => {
     if (prevStatus !== null) {
@@ -26,15 +29,13 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
     logEvent(session_id, participant_id, condition, "action_rejected", { id: action.id });
   };
 
-  const handleEdit = () => {
-    const newLabel = prompt("Edit action label:", action.label);
-    if (newLabel && newLabel !== action.label) {
-      logEvent(session_id, participant_id, condition, "action_edited", {
-        id: action.id,
-        old_label: action.label,
-        new_label: newLabel,
-      });
-    }
+  const handleEditSelect = (newCategory) => {
+    setShowCategoryPicker(false);
+    logEvent(session_id, participant_id, condition, "action_edited", {
+      id: action.id,
+      old_label: action.label,
+      new_category: newCategory,
+    });
   };
 
   const handleUndo = () => {
@@ -61,49 +62,59 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
 
   return (
     <div
-      className={`border rounded-lg p-4 mb-3 shadow-sm ${
+      className={`relative border rounded-none pl-6 pr-5 py-5 mb-4 transition-colors ${
         status === "accepted"
-          ? "border-green-300 bg-green-50"
+          ? "border-confirm bg-confirm-soft"
           : status === "rejected"
-          ? "border-red-300 bg-red-50 opacity-60"
-          : "border-gray-200 bg-white"
+          ? "border-caution bg-caution-soft opacity-70"
+          : "border-line bg-white"
       }`}
     >
-      {/* Always show the original customer ticket text */}
-      {action.ticket_text && (
-        <p className="text-sm text-gray-500 italic mb-1">"{action.ticket_text}"</p>
-      )}
+      {/* vertical status bar */}
+      <span
+        className="absolute left-0 top-0 bottom-0 w-1.5"
+        style={{
+          background:
+            status === "accepted"
+              ? "var(--color-confirm)"
+              : status === "rejected"
+              ? "var(--color-caution)"
+              : "var(--color-line)",
+        }}
+      />
+      {/* ticket ID label */}
+      <span className="font-mono text-[11px] text-slate tracking-wide">
+        TICKET #{action.id.replace("t", "")}
+      </span>
 
-      <div className="flex justify-between items-start">
-        <span className="font-medium text-gray-900">AI suggests: {action.label}</span>
+      <p className="text-xs uppercase tracking-wide text-slate mt-2 mb-1">Customer message</p>
+      <p className="font-display text-lg text-ink mb-4 leading-snug">"{action.ticket_text}"</p>
+
+      <div className="flex justify-between items-center mb-3 pt-3 border-t border-line">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate mb-1">AI suggests</p>
+          <span className="text-base font-semibold text-ink">{action.label}</span>
+        </div>
         {action.confidence !== undefined && (
-          <span
-            className={`text-xs px-2 py-1 rounded-full ${
-              action.confidence >= 0.9
-                ? "bg-green-100 text-green-800"
-                : action.confidence >= 0.75
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
-            }`}
-          >
-            {Math.round(action.confidence * 100)}%
+          <span className="font-mono text-xs font-medium px-2.5 py-1 border border-line text-slate">
+            {Math.round(action.confidence * 100)}% confidence
           </span>
         )}
       </div>
 
       {hasTraceData && (
-        <div className="mt-2">
+        <div className="mb-3">
           <button
             onClick={toggleTrace}
-            className="text-xs text-purple-700 hover:underline"
+            className="text-sm text-signal hover:underline font-medium"
           >
-            {traceOpen ? "Hide reasoning ▲" : "Show reasoning ▼"}
+            {traceOpen ? "Hide AI's reasoning ▲" : "Why did the AI suggest this? ▼"}
           </button>
           {traceOpen && (
-            <div className="mt-2 text-sm text-gray-600 bg-gray-50 rounded p-2">
+            <div className="mt-2 text-sm text-ink bg-signal-soft p-3 leading-relaxed border-l-2 border-signal">
               {action.reasoning && <p>{action.reasoning}</p>}
-              {action.citations && action.citations.length > 0 && (
-                <ul className="mt-1 list-disc list-inside text-xs text-gray-500">
+              {action.citations?.length > 0 && (
+                <ul className="mt-2 list-disc list-inside text-xs text-slate">
                   {action.citations.map((c, i) => (
                     <li key={i}>{c}</li>
                   ))}
@@ -114,36 +125,57 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
         </div>
       )}
 
-      <div className="flex gap-2 mt-3">
+      <p className="text-sm text-slate mb-2">Is this suggestion correct?</p>
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={handleAccept}
           disabled={status === "accepted"}
-          className="text-sm px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-40"
+          className="text-sm font-medium px-4 py-2 bg-confirm text-white hover:opacity-90 disabled:opacity-30"
         >
           Accept
         </button>
         <button
-          onClick={handleEdit}
-          className="text-sm px-3 py-1 rounded bg-gray-200 text-gray-800 hover:bg-gray-300"
+          onClick={() => setShowCategoryPicker((v) => !v)}
+          className="text-sm font-medium px-4 py-2 border border-line text-ink hover:bg-paper"
         >
-          Edit
+          Change category
         </button>
         <button
           onClick={handleReject}
           disabled={status === "rejected"}
-          className="text-sm px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-40"
+          className="text-sm font-medium px-4 py-2 border border-caution text-caution hover:bg-caution-soft disabled:opacity-30"
         >
           Reject
         </button>
         {history.length > 0 && (
           <button
             onClick={handleUndo}
-            className="text-sm px-3 py-1 rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+            className="text-sm font-medium px-4 py-2 border border-pending text-pending hover:bg-pending-soft"
           >
             Undo
           </button>
         )}
       </div>
+
+      {showCategoryPicker && (
+        <div className="mt-3 flex gap-2 items-center bg-paper p-3 border border-line">
+          <span className="text-sm text-slate">Correct category:</span>
+          <select
+            onChange={(e) => handleEditSelect(e.target.value)}
+            defaultValue=""
+            className="text-sm border border-line px-2 py-1 bg-white"
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

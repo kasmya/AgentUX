@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import anthropic, json, csv, io
+import anthropic, json, csv, io, os
 from logger import log, engine, Event
 from sqlmodel import Session, select
 from typing import Optional
@@ -18,6 +18,26 @@ app.add_middleware(
 )
 
 client = anthropic.Anthropic()   # set ANTHROPIC_API_KEY env var
+
+# --- Participant counter ---
+COUNTER_FILE = "participant_counter.txt"
+
+def get_next_participant_number():
+    if not os.path.exists(COUNTER_FILE):
+        with open(COUNTER_FILE, "w") as f:
+            f.write("0")
+    with open(COUNTER_FILE, "r") as f:
+        current = int(f.read().strip() or "0")
+    next_num = current + 1
+    with open(COUNTER_FILE, "w") as f:
+        f.write(str(next_num))
+    return next_num
+
+@app.get("/next_participant")
+def next_participant():
+    num = get_next_participant_number()
+    order = condition_order(num)
+    return {"participant_number": num, "order": order}
 
 # --- Health check route ---
 @app.get("/health")
@@ -81,7 +101,6 @@ def get_scenario(session_id: str, participant_id: str, condition: str, scenario:
 
     actions = []
     for a in data["actions"]:
-        # Always include ticket_text
         item = {"id": a["id"], "label": a["label"], "ticket_text": a["ticket_text"]}
         if condition == "transparency_on":
             item |= {
@@ -91,7 +110,6 @@ def get_scenario(session_id: str, participant_id: str, condition: str, scenario:
             }
         actions.append(item)
 
-        # log full ground truth server-side
         log(session_id, participant_id, condition, "action_proposed",
             {"id": a["id"], "is_correct": a["is_correct"]})
 
@@ -121,10 +139,10 @@ class SurveyResponse(BaseModel):
     session_id: str
     participant_id: str
     condition: str
-    trust_1: int       # 1-7: "I trusted the agent's suggestions"
-    trust_2: int       # 1-7: "I felt in control of the agent's actions"
-    trust_3: int       # 1-7: "I understood why the agent made its suggestions"
-    sus_scores: list[int]  # 10 items, 1-5 each, standard SUS
+    trust_1: int
+    trust_2: int
+    trust_3: int
+    sus_scores: list[int]
     comments: Optional[str] = None
 
 @app.post("/survey")
