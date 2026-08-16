@@ -4,33 +4,23 @@ import { logEvent } from "../api";
 const CATEGORIES = ["Billing", "Technical", "Account"];
 
 function ActionCard({ action, session_id, participant_id, condition, onStatusChange }) {
-  const [status, setStatus] = useState(null); // null | "accepted" | "rejected"
+  const [status, setStatus] = useState(null);
   const [traceOpen, setTraceOpen] = useState(false);
-  const [history, setHistory] = useState([]); // for undo
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-
-  const pushHistory = (prevStatus) => {
-    if (prevStatus !== null) {
-      setHistory((h) => [...h, prevStatus]);
-    }
-  };
+  const [correctedCategory, setCorrectedCategory] = useState(null);
 
   const handleAccept = () => {
-    pushHistory(status);
     setStatus("accepted");
+    setShowCategoryPicker(false);
     onStatusChange && onStatusChange("accepted");
     logEvent(session_id, participant_id, condition, "action_accepted", { id: action.id });
   };
 
-  const handleReject = () => {
-    pushHistory(status);
-    setStatus("rejected");
-    onStatusChange && onStatusChange("rejected");
-    logEvent(session_id, participant_id, condition, "action_rejected", { id: action.id });
-  };
-
   const handleEditSelect = (newCategory) => {
+    setStatus("corrected");
+    setCorrectedCategory(newCategory);
     setShowCategoryPicker(false);
+    onStatusChange && onStatusChange("corrected");
     logEvent(session_id, participant_id, condition, "action_edited", {
       id: action.id,
       old_label: action.label,
@@ -39,82 +29,85 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
   };
 
   const handleUndo = () => {
-    if (history.length === 0) return;
-    const prev = history[history.length - 1];
-    setHistory((h) => h.slice(0, -1));
-    setStatus(prev);
-    onStatusChange && onStatusChange(prev);
-    logEvent(session_id, participant_id, condition, "undo", { id: action.id, reverted_to: prev });
+    setStatus(null);
+    setCorrectedCategory(null);
+    onStatusChange && onStatusChange(null);
+    logEvent(session_id, participant_id, condition, "undo", { id: action.id });
   };
 
   const toggleTrace = () => {
     const opening = !traceOpen;
     setTraceOpen(opening);
-    if (opening) {
-      logEvent(session_id, participant_id, condition, "trace_opened", { id: action.id });
-    }
+    if (opening) logEvent(session_id, participant_id, condition, "trace_opened", { id: action.id });
   };
 
-  const hasTraceData =
-    action.reasoning ||
-    action.confidence !== undefined ||
-    (action.citations && action.citations.length > 0);
+  const cardStyle = {
+    border:
+      status === "accepted"
+        ? "2px solid #1F8A5A"
+        : status === "corrected"
+        ? "2px solid #B8860B"
+        : "1px solid #ccc",
+    background:
+      status === "accepted" ? "#e9f5ef" : status === "corrected" ? "#fbf3e1" : "#fff",
+    padding: "16px",
+    marginBottom: "16px",
+    transition: "background-color 0.2s, border-color 0.2s",
+  };
 
   return (
-    <div
-      className={`relative border rounded-none pl-6 pr-5 py-5 mb-4 transition-colors ${
-        status === "accepted"
-          ? "border-confirm bg-confirm-soft"
-          : status === "rejected"
-          ? "border-caution bg-caution-soft opacity-70"
-          : "border-line bg-white"
-      }`}
-    >
-      {/* vertical status bar */}
-      <span
-        className="absolute left-0 top-0 bottom-0 w-1.5"
-        style={{
-          background:
-            status === "accepted"
-              ? "var(--color-confirm)"
-              : status === "rejected"
-              ? "var(--color-caution)"
-              : "var(--color-line)",
-        }}
-      />
-      {/* ticket ID label */}
-      <span className="font-mono text-[11px] text-slate tracking-wide">
-        TICKET #{action.id.replace("t", "")}
-      </span>
+    <div style={cardStyle}>
+      <p style={{ fontSize: "12px", color: "#888" }}>Ticket #{action.id.replace("t", "")}</p>
 
-      <p className="text-xs uppercase tracking-wide text-slate mt-2 mb-1">Customer message</p>
-      <p className="font-display text-lg text-ink mb-4 leading-snug">"{action.ticket_text}"</p>
+      <p style={{ fontSize: "12px", color: "#888", marginTop: "8px" }}>Customer message:</p>
+      <p style={{ fontSize: "16px", marginBottom: "12px" }}>"{action.ticket_text}"</p>
 
-      <div className="flex justify-between items-center mb-3 pt-3 border-t border-line">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate mb-1">AI suggests</p>
-          <span className="text-base font-semibold text-ink">{action.label}</span>
-        </div>
-        {action.confidence !== undefined && (
-          <span className="font-mono text-xs font-medium px-2.5 py-1 border border-line text-slate">
-            {Math.round(action.confidence * 100)}% confidence
-          </span>
+      <p style={{ fontSize: "12px", color: "#888" }}>AI suggests:</p>
+      <p style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "8px" }}>
+        {status === "corrected" ? (
+          <>
+            <span style={{ textDecoration: "line-through", color: "#888" }}>{action.label}</span>
+            {" → "}
+            {correctedCategory}
+          </>
+        ) : (
+          action.label
         )}
-      </div>
+      </p>
 
-      {hasTraceData && (
-        <div className="mb-3">
+      {action.confidence !== undefined && (
+        <p style={{ fontSize: "14px", color: "#333" }}>
+          AI confidence: {Math.round(action.confidence * 100)}%
+        </p>
+      )}
+
+      {action.reasoning && (
+        <div style={{ marginTop: "8px" }}>
           <button
             onClick={toggleTrace}
-            className="text-sm text-signal hover:underline font-medium"
+            style={{
+              fontSize: "14px",
+              color: "#2B5FE2",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
           >
-            {traceOpen ? "Hide AI's reasoning ▲" : "Why did the AI suggest this? ▼"}
+            {traceOpen ? "Hide AI's reasoning" : "Why did the AI suggest this?"}
           </button>
           {traceOpen && (
-            <div className="mt-2 text-sm text-ink bg-signal-soft p-3 leading-relaxed border-l-2 border-signal">
-              {action.reasoning && <p>{action.reasoning}</p>}
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                background: "#f5f5f5",
+                padding: "12px",
+              }}
+            >
+              <p>{action.reasoning}</p>
               {action.citations?.length > 0 && (
-                <ul className="mt-2 list-disc list-inside text-xs text-slate">
+                <ul style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
                   {action.citations.map((c, i) => (
                     <li key={i}>{c}</li>
                   ))}
@@ -125,32 +118,44 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
         </div>
       )}
 
-      <p className="text-sm text-slate mb-2">Is this suggestion correct?</p>
-      <div className="flex gap-2 flex-wrap">
+      <p style={{ fontSize: "14px", marginTop: "16px", marginBottom: "8px" }}>
+        Is the AI's category correct?
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <button
           onClick={handleAccept}
           disabled={status === "accepted"}
-          className="text-sm font-medium px-4 py-2 bg-confirm text-white hover:opacity-90 disabled:opacity-30"
+          style={{
+            padding: "8px 16px",
+            background: "#1F8A5A",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            opacity: status === "accepted" ? 0.5 : 1,
+          }}
         >
-          Accept
+          Yes, correct
         </button>
         <button
           onClick={() => setShowCategoryPicker((v) => !v)}
-          className="text-sm font-medium px-4 py-2 border border-line text-ink hover:bg-paper"
+          style={{
+            padding: "8px 16px",
+            background: "#eee",
+            border: "1px solid #ccc",
+            cursor: "pointer",
+          }}
         >
-          Change category
+          No, it should be...
         </button>
-        <button
-          onClick={handleReject}
-          disabled={status === "rejected"}
-          className="text-sm font-medium px-4 py-2 border border-caution text-caution hover:bg-caution-soft disabled:opacity-30"
-        >
-          Reject
-        </button>
-        {history.length > 0 && (
+        {status !== null && (
           <button
             onClick={handleUndo}
-            className="text-sm font-medium px-4 py-2 border border-pending text-pending hover:bg-pending-soft"
+            style={{
+              padding: "8px 16px",
+              background: "#fff3cd",
+              border: "1px solid #B8860B",
+              cursor: "pointer",
+            }}
           >
             Undo
           </button>
@@ -158,17 +163,13 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
       </div>
 
       {showCategoryPicker && (
-        <div className="mt-3 flex gap-2 items-center bg-paper p-3 border border-line">
-          <span className="text-sm text-slate">Correct category:</span>
-          <select
-            onChange={(e) => handleEditSelect(e.target.value)}
-            defaultValue=""
-            className="text-sm border border-line px-2 py-1 bg-white"
-          >
+        <div style={{ marginTop: "12px" }}>
+          <span style={{ fontSize: "14px", marginRight: "8px" }}>Correct category:</span>
+          <select onChange={(e) => handleEditSelect(e.target.value)} defaultValue="">
             <option value="" disabled>
               Choose one
             </option>
-            {CATEGORIES.map((c) => (
+            {CATEGORIES.filter((c) => c !== action.label.split(" as ")[1]).map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
