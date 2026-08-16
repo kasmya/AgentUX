@@ -1,15 +1,12 @@
 from assign import condition_order
 from scenario import SCENARIOS
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import anthropic, json
-from logger import log
-from fastapi.responses import PlainTextResponse
+import anthropic, json, csv, io
+from logger import log, engine, Event
 from sqlmodel import Session, select
-from logger import engine, Event
-import csv, io
 from typing import Optional
 
 app = FastAPI()
@@ -84,7 +81,8 @@ def get_scenario(session_id: str, participant_id: str, condition: str, scenario:
 
     actions = []
     for a in data["actions"]:
-        item = {"id": a["id"], "label": a["label"]}   # always visible
+        # Always include ticket_text
+        item = {"id": a["id"], "label": a["label"], "ticket_text": a["ticket_text"]}
         if condition == "transparency_on":
             item |= {
                 "reasoning": a["reasoning"],

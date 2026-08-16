@@ -69,8 +69,13 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
           : "border-gray-200 bg-white"
       }`}
     >
+      {/* Always show the original customer ticket text */}
+      {action.ticket_text && (
+        <p className="text-sm text-gray-500 italic mb-1">"{action.ticket_text}"</p>
+      )}
+
       <div className="flex justify-between items-start">
-        <span className="font-medium text-gray-900">{action.label}</span>
+        <span className="font-medium text-gray-900">AI suggests: {action.label}</span>
         {action.confidence !== undefined && (
           <span
             className={`text-xs px-2 py-1 rounded-full ${
