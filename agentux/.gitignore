@@ -1,4 +1,4 @@
 # runtime data — never commit
 backend/agentux.db
 backend/participant_counter.txt
-backend/participants.csv
+backend/participants.csvfrontend/.env.local

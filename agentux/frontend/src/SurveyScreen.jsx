@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BASE } from "./api"; // <-- import BASE here
 
 const TRUST_QUESTIONS = [
   { key: "trust_1", text: "I trusted the AI's suggestions." },
@@ -57,7 +58,7 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await fetch("http://127.0.0.1:8000/survey", {
+      await fetch(`${BASE}/survey`, {   // <-- use BASE here
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

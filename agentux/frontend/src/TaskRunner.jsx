@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import ActionCard from "./components/ActionCard";
 import SurveyScreen from "./SurveyScreen";
-import { logEvent } from "./api";
+import { logEvent, BASE } from "./api"; // <-- import BASE here
 
 function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onComplete }) {
   const [data, setData] = useState(null);
@@ -16,7 +16,7 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
     if (hasFetched.current) return;
     hasFetched.current = true;
 
-    const url = `http://127.0.0.1:8000/scenario?session_id=${sessionId}&participant_id=${participantId}&condition=${condition}&scenario=${scenarioVariant}`;
+    const url = `${BASE}/scenario?session_id=${sessionId}&participant_id=${participantId}&condition=${condition}&scenario=${scenarioVariant}`;
 
     fetch(url)
       .then((res) => res.json())
@@ -25,7 +25,7 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
         setActions(d.actions);
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [sessionId, participantId, condition, scenarioVariant]);
 
   const handleStatusChange = (id, status) => {
     setStatuses((s) => ({ ...s, [id]: status }));
@@ -36,7 +36,9 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
 
   const handleSubmit = () => {
     logEvent(sessionId, participantId, condition, "task_end", {
-      task_id: data.task_id, decided_count: decidedCount, total: actions.length,
+      task_id: data.task_id,
+      decided_count: decidedCount,
+      total: actions.length,
     });
     setSubmitted(true);
   };

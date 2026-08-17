@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BASE } from "./api"; // adjust path if needed
 
 function EntryScreen({ onStart }) {
   const [name, setName] = useState("");
@@ -14,7 +15,7 @@ function EntryScreen({ onStart }) {
     }
     setLoading(true);
     try {
-      const url = `http://127.0.0.1:8000/register?name=${encodeURIComponent(name.trim())}&age_range=${encodeURIComponent(ageRange)}&ai_familiarity=${aiFamiliarity}`;
+      const url = `${BASE}/register?name=${encodeURIComponent(name.trim())}&age_range=${encodeURIComponent(ageRange)}&ai_familiarity=${aiFamiliarity}`;
       const res = await fetch(url);
       const data = await res.json();
       const sessionId = `sess_${data.participant_number}_${Date.now()}`;
@@ -33,7 +34,9 @@ function EntryScreen({ onStart }) {
 
   return (
     <div className="max-w-md mx-auto p-6 mt-16 text-left">
-      <h1 className="font-display text-xl font-semibold mb-4 text-ink text-center">Before you begin</h1>
+      <h1 className="font-display text-xl font-semibold mb-4 text-ink text-center">
+        Before you begin
+      </h1>
 
       <label className="text-sm text-slate block mb-1">Your name</label>
       <input
