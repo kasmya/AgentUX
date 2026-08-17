@@ -1,85 +1,120 @@
 import { useState } from "react";
 import { BASE } from "./api";
 
+const CARD_SHADOW = "0 1px 2px rgba(60, 50, 30, 0.04), 0 4px 12px rgba(60, 50, 30, 0.03)";
+
 function EntryScreen({ onStart }) {
   const [name, setName] = useState("");
   const [ageRange, setAgeRange] = useState("");
   const [aiFamiliarity, setAiFamiliarity] = useState("");
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const canStart = name.trim() && ageRange && aiFamiliarity;
 
   const handleStart = async () => {
-    if (!name.trim() || !ageRange || !aiFamiliarity) {
-      alert("Please fill in all fields to continue.");
-      return;
-    }
+    if (!canStart) return;
     setLoading(true);
+    setError(null);
     try {
       const url = `${BASE}/register?name=${encodeURIComponent(name.trim())}&age_range=${encodeURIComponent(ageRange)}&ai_familiarity=${aiFamiliarity}`;
       const res = await fetch(url);
       const data = await res.json();
-      const sessionId = `sess_${data.participant_number}_${Date.now()}`;
       onStart({
         participantId: `p${data.participant_number}`,
-        sessionId,
+        sessionId: `sess_${data.participant_number}_${Date.now()}`,
         conditionOrder: data.order,
       });
     } catch (err) {
-      setError(err.message);
+      setError("Something went wrong. Please try again.");
+      console.error(err);
     }
     setLoading(false);
   };
 
-  if (error) return <div className="p-6 text-caution">Error: {error}</div>;
-
   return (
-    <div className="max-w-md mx-auto p-6 mt-16 text-left">
-      <h1 className="font-display text-xl font-semibold mb-4 text-ink text-center">Before you begin</h1>
+    <div className="max-w-md mx-auto p-6 pt-16">
+      <div className="mb-6 px-1">
+        <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-2">
+          Step 1 of 3
+        </p>
+        <h1 className="font-display text-3xl text-ink mb-2 leading-tight">
+          A little about you
+        </h1>
+        <p className="text-sm text-slate">
+          Just three quick things before we start.
+        </p>
+      </div>
 
-      <label className="text-sm text-slate block mb-1">Your name</label>
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="border border-line rounded px-3 py-2 w-full mb-4"
-        placeholder="Your name"
-      />
-
-      <label className="text-sm text-slate block mb-1">Age range</label>
-      <select
-        value={ageRange}
-        onChange={(e) => setAgeRange(e.target.value)}
-        className="border border-line rounded px-3 py-2 w-full mb-4"
+      <div
+        className="rounded-2xl border border-line bg-card p-6"
+        style={{ boxShadow: CARD_SHADOW }}
       >
-        <option value="">Select...</option>
-        <option value="under_18">Under 18</option>
-        <option value="18_24">18–24</option>
-        <option value="25_34">25–34</option>
-        <option value="35_44">35–44</option>
-        <option value="45_plus">45+</option>
-      </select>
+        <label className="block mb-5">
+          <span className="block text-sm font-medium text-ink mb-1.5">
+            What should we call you?
+          </span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border border-line bg-sand text-ink placeholder-mist rounded-[10px] px-3.5 py-2.5 focus:outline-none focus:border-confirm focus:bg-card transition-colors"
+            placeholder="First name is fine"
+          />
+        </label>
 
-      <label className="text-sm text-slate block mb-1">
-        How familiar are you with AI tools (e.g. ChatGPT)? (1 = not at all, 5 = very familiar)
-      </label>
-      <select
-        value={aiFamiliarity}
-        onChange={(e) => setAiFamiliarity(e.target.value)}
-        className="border border-line rounded px-3 py-2 w-full mb-6"
-      >
-        <option value="">Select...</option>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <option key={n} value={n}>{n}</option>
-        ))}
-      </select>
+        <label className="block mb-5">
+          <span className="block text-sm font-medium text-ink mb-1.5">
+            Roughly, how old are you?
+          </span>
+          <select
+            value={ageRange}
+            onChange={(e) => setAgeRange(e.target.value)}
+            className="w-full border border-line bg-sand text-ink rounded-[10px] px-3.5 py-2.5 focus:outline-none focus:border-confirm focus:bg-card transition-colors"
+          >
+            <option value="">Pick one…</option>
+            <option value="under_18">Under 18</option>
+            <option value="18_24">18 to 24</option>
+            <option value="25_34">25 to 34</option>
+            <option value="35_44">35 to 44</option>
+            <option value="45_plus">45 or older</option>
+          </select>
+        </label>
 
-      <button
-        onClick={handleStart}
-        disabled={loading}
-        className="px-4 py-2 bg-signal text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 w-full"
-      >
-        {loading ? "Starting..." : "Start"}
-      </button>
+        <label className="block mb-6">
+          <span className="block text-sm font-medium text-ink mb-1.5">
+            How often do you use AI tools like ChatGPT?
+          </span>
+          <select
+            value={aiFamiliarity}
+            onChange={(e) => setAiFamiliarity(e.target.value)}
+            className="w-full border border-line bg-sand text-ink rounded-[10px] px-3.5 py-2.5 focus:outline-none focus:border-confirm focus:bg-card transition-colors"
+          >
+            <option value="">Pick one…</option>
+            <option value="1">I've never really used them</option>
+            <option value="2">I've tried them once or twice</option>
+            <option value="3">I use them now and then</option>
+            <option value="4">I use them most weeks</option>
+            <option value="5">I use them nearly every day</option>
+          </select>
+        </label>
+
+        {error && (
+          <p className="text-sm text-caution mb-4">{error}</p>
+        )}
+
+        <button
+          onClick={handleStart}
+          disabled={!canStart || loading}
+          className="w-full bg-confirm text-white text-[15px] font-medium py-3 rounded-[10px] hover:opacity-90 disabled:opacity-30 transition-opacity"
+        >
+          {loading ? "Starting…" : "Start the study"}
+        </button>
+      </div>
+
+      <p className="text-xs text-mist text-center mt-6 px-4 leading-relaxed">
+        Your name is stored separately from your answers, only so we know who took part.
+      </p>
     </div>
   );
 }

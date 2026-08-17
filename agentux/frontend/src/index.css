@@ -1,23 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #FAF9F6;
-  --color-ink: #1C1B1F;
-  --color-slate: #6B7280;
-  --color-line: #E3E1DB;
+  --color-paper: #F5F2EA;
+  --color-panel: #EDE9DE;
+  --color-card:  #FFFFFF;
+  --color-sand:  #FAF7F0;
+
+  --color-ink:    #1F1D18;
+  --color-slate:  #55524A;
+  --color-mist:   #8F8B7E;
+  --color-line:   #E1DCCC;
+  --color-hair:   #EFEBDE;
+
   --color-signal: #2B5FE2;
   --color-signal-soft: #EAF0FE;
-  --color-confirm: #1F8A5A;
-  --color-confirm-soft: #E9F5EF;
+  --color-confirm: #1F8A6D;
+  --color-confirm-soft: #E8F3EE;
   --color-caution: #B3261E;
   --color-caution-soft: #FBEBEA;
   --color-pending: #B8860B;
-  --color-pending-soft: #FBF3E1;
+  --color-pending-soft: #F7EED4;
 
-  --font-display: "Source Serif 4", Georgia, serif;
+  --font-display: "Fraunces", "Source Serif 4", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
 
 body {
   margin: 0;
@@ -30,6 +39,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
-  min-height: 100vh;
+#root { min-height: 100vh; }
+
+input, select, textarea, button {
+  font-family: var(--font-body);
+  color: var(--color-ink);
 }

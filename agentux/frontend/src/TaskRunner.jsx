@@ -12,6 +12,8 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
   const [surveyDone, setSurveyDone] = useState(false);
   const hasFetched = useRef(false);
 
+  const showsThinking = condition === "transparency_on";
+
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
@@ -20,22 +22,16 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
 
     fetch(url)
       .then((res) => res.json())
-      .then((d) => {
-        setData(d);
-        setActions(d.actions);
-      })
+      .then((d) => { setData(d); setActions(d.actions); })
       .catch((err) => setError(err.message));
   }, []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [submitted, surveyDone]);
+  useEffect(() => { window.scrollTo(0, 0); }, [submitted, surveyDone]);
 
-  const handleStatusChange = (id, status) => {
+  const handleStatusChange = (id, status) =>
     setStatuses((s) => ({ ...s, [id]: status }));
-  };
 
-  const decidedCount = Object.keys(statuses).filter((id) => statuses[id]).length;
+  const decidedCount = Object.values(statuses).filter(Boolean).length;
   const allDecided = actions.length > 0 && decidedCount === actions.length;
 
   const handleSubmit = () => {
@@ -45,8 +41,22 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
     setSubmitted(true);
   };
 
-  if (error) return <div className="p-6 text-caution">Error: {error}</div>;
-  if (!data) return <div className="p-6">Loading...</div>;
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto p-6 mt-20 text-center">
+        <p className="text-caution">Something went wrong loading this round.</p>
+        <p className="text-sm text-slate mt-2">{error}</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-md mx-auto p-6 mt-20 text-center text-slate">
+        Loading the next round…
+      </div>
+    );
+  }
 
   if (submitted && !surveyDone) {
     return (
@@ -61,12 +71,17 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
 
   if (submitted && surveyDone) {
     return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
-        <h1 className="font-display text-2xl font-semibold mb-2 text-ink">Round complete</h1>
-        <p className="text-slate mb-6">Thanks for completing that round.</p>
+      <div className="max-w-md mx-auto p-6 pt-20 text-center">
+        <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-3">
+          Round complete
+        </p>
+        <h1 className="font-display text-3xl text-ink mb-3">Nicely done</h1>
+        <p className="text-slate leading-relaxed mb-8">
+          That's one round finished. Ready for the next one?
+        </p>
         <button
           onClick={onComplete}
-          className="px-4 py-2 bg-signal text-white text-sm font-medium hover:opacity-90"
+          className="w-full bg-confirm text-white text-[15px] font-medium py-3 rounded-[10px] hover:opacity-90"
         >
           Continue
         </button>
@@ -75,29 +90,41 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="font-display text-2xl font-semibold mb-1 text-ink">{data.prompt}</h1>
-      <p className="text-xs font-mono uppercase tracking-wide text-slate mb-6">
-        Explainability: {condition === "transparency_on" ? "ON" : "OFF"}
+    <div className="max-w-2xl mx-auto p-6 pt-10">
+      <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-2">
+        {showsThinking ? "Round with the AI's thinking" : "Round without the AI's thinking"}
       </p>
-      {actions.map((action) => (
+      <h1 className="font-display text-3xl text-ink mb-3 leading-tight">
+        Read each message and check the AI's guess
+      </h1>
+      <p className="text-[15px] text-slate leading-relaxed mb-8">
+        {showsThinking
+          ? "For this round, you can see why the AI made each guess and how sure it was. Use whatever helps you decide."
+          : "For this round, you'll only see the AI's guess — not why it made it. Just go with your gut."}
+      </p>
+
+      {actions.map((action, i) => (
         <ActionCard
           key={action.id}
           action={action}
+          messageNumber={i + 1}
           session_id={sessionId}
           participant_id={participantId}
           condition={condition}
           onStatusChange={(status) => handleStatusChange(action.id, status)}
         />
       ))}
-      <div className="sticky bottom-0 bg-white border-t border-line pt-4 mt-4 flex justify-between items-center">
-        <span className="text-sm text-slate">{decidedCount} / {actions.length} decided</span>
+
+      <div className="sticky bottom-0 bg-paper border-t border-line pt-4 pb-4 mt-6 flex justify-between items-center">
+        <span className="text-sm text-slate">
+          You've answered {decidedCount} of {actions.length}
+        </span>
         <button
           onClick={handleSubmit}
           disabled={!allDecided}
-          className="px-4 py-2 bg-signal text-white text-sm font-medium hover:opacity-90 disabled:opacity-30"
+          className="bg-confirm text-white text-sm font-medium px-5 py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-30"
         >
-          Submit Triage
+          I'm done with this round
         </button>
       </div>
     </div>

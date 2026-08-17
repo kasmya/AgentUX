@@ -129,7 +129,9 @@ def get_scenario(session_id: str, participant_id: str, condition: str, scenario:
             item |= {
                 "reasoning": a["reasoning"],
                 "confidence": a["confidence"],
-                "citations": a["citations"]
+                "citations": a["citations"],
+                "highlights": a.get("highlights", []),
+                "alternative": a.get("alternative"),
             }
         actions.append(item)
 
@@ -165,8 +167,11 @@ class SurveyResponse(BaseModel):
     trust_1: int
     trust_2: int
     trust_3: int
+    trust_4: Optional[int] = None
+    trust_5: Optional[int] = None
     sus_scores: list[int]
     saw_reasoning: str
+    overall_rating: Optional[int] = None
     comments: Optional[str] = None
 
 @app.post("/survey")
@@ -175,8 +180,11 @@ def submit_survey(resp: SurveyResponse):
         "trust_1": resp.trust_1,
         "trust_2": resp.trust_2,
         "trust_3": resp.trust_3,
+        "trust_4": resp.trust_4,
+        "trust_5": resp.trust_5,
         "sus_scores": resp.sus_scores,
         "saw_reasoning": resp.saw_reasoning,
+        "overall_rating": resp.overall_rating,
         "comments": resp.comments,
     }
     log(resp.session_id, resp.participant_id, resp.condition, "survey_submitted", payload)

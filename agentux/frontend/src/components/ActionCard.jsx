@@ -1,162 +1,229 @@
 import { useState } from "react";
 import { logEvent } from "../api";
 
-const CATEGORIES = ["Billing", "Technical", "Account"];
+const CATEGORIES = ["Billing", "Technical", "Account", "Other"];
 
-function ActionCard({ action, session_id, participant_id, condition, onStatusChange }) {
-  const [status, setStatus] = useState(null);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [correctedCategory, setCorrectedCategory] = useState(null);
+const confidenceWord = (c) => {
+  if (c >= 0.85) return "Very sure";
+  if (c >= 0.65) return "Fairly sure";
+  if (c >= 0.45) return "Somewhat unsure";
+  return "Not very sure";
+};
 
-  const handleAccept = () => {
-    setStatus("accepted");
-    setShowCategoryPicker(false);
-    onStatusChange && onStatusChange("accepted");
-    logEvent(session_id, participant_id, condition, "action_accepted", { id: action.id });
-  };
+// Highlights the AI's cited phrases inside the customer's message.
+// action.highlights should be an array of exact substrings from ticket_text.
+// Falls back gracefully to plain text if not provided.
+function HighlightedMessage({ text, highlights = [] }) {
+  if (!highlights.length) return <>"{text}"</>;
 
-  const handleEditSelect = (newCategory) => {
-    setStatus("corrected");
-    setCorrectedCategory(newCategory);
-    setShowCategoryPicker(false);
-    onStatusChange && onStatusChange("corrected");
-    logEvent(session_id, participant_id, condition, "action_edited", {
-      id: action.id,
-      old_label: action.label,
-      new_category: newCategory,
-    });
-  };
-
-  const handleUndo = () => {
-    setStatus(null);
-    setCorrectedCategory(null);
-    onStatusChange && onStatusChange(null);
-    logEvent(session_id, participant_id, condition, "undo", { id: action.id });
-  };
-
-  const cardStyle = {
-    border:
-      status === "accepted"
-        ? "2px solid #1F8A5A"
-        : status === "corrected"
-        ? "2px solid #B8860B"
-        : "1px solid #ccc",
-    background:
-      status === "accepted" ? "#e9f5ef" : status === "corrected" ? "#fbf3e1" : "#fff",
-    padding: "16px",
-    marginBottom: "16px",
-    transition: "background-color 0.2s, border-color 0.2s",
-  };
+  const escaped = highlights
+    .filter(Boolean)
+    .map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
+  const parts = text.split(pattern);
 
   return (
-    <div style={cardStyle}>
-      <p style={{ fontSize: "12px", color: "#888" }}>Ticket #{action.id.replace("t", "")}</p>
+    <>
+      "
+      {parts.map((part, i) =>
+        highlights.some((h) => h && part.toLowerCase() === h.toLowerCase()) ? (
+          <mark
+            key={i}
+            className="bg-pending-soft text-ink px-1 rounded"
+            style={{ boxShadow: "inset 0 -2px 0 rgba(184, 134, 11, 0.35)" }}
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+      "
+    </>
+  );
+}
 
-      <p style={{ fontSize: "12px", color: "#888", marginTop: "8px" }}>Customer message:</p>
-      <p style={{ fontSize: "16px", marginBottom: "12px" }}>"{action.ticket_text}"</p>
+function ActionCard({ action, session_id, participant_id, condition, onStatusChange, messageNumber }) {
+  const [status, setStatus] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [corrected, setCorrected] = useState(null);
+  const [showAlternative, setShowAlternative] = useState(false);
 
-      <p style={{ fontSize: "12px", color: "#888" }}>AI suggests:</p>
-      <p style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "8px" }}>
+  const current = action.label.split(" as ")[1];
+  const showsReasoning = !!action.reasoning;
+
+  const accept = () => {
+    setStatus("accepted"); setPicking(false);
+    onStatusChange?.("accepted");
+    logEvent(session_id, participant_id, condition, "action_accepted", { id: action.id });
+  };
+  const pick = (cat) => {
+    setStatus("corrected"); setCorrected(cat); setPicking(false);
+    onStatusChange?.("corrected");
+    logEvent(session_id, participant_id, condition, "action_edited",
+      { id: action.id, old_label: action.label, new_category: cat });
+  };
+  const undo = () => {
+    setStatus(null); setCorrected(null);
+    onStatusChange?.(null);
+    logEvent(session_id, participant_id, condition, "undo", { id: action.id });
+  };
+  const toggleAlt = () => {
+    const next = !showAlternative;
+    setShowAlternative(next);
+    if (next) {
+      logEvent(session_id, participant_id, condition, "alternative_viewed", { id: action.id });
+    }
+  };
+
+  const cardTone =
+    status === "accepted"  ? "border-confirm/40 bg-confirm-soft"
+    : status === "corrected" ? "border-pending/50 bg-pending-soft"
+    : "border-line bg-card";
+
+  return (
+    <div
+      className={`rounded-2xl border ${cardTone} p-6 mb-5 transition-colors`}
+      style={{ boxShadow: "0 1px 2px rgba(60, 50, 30, 0.04), 0 4px 12px rgba(60, 50, 30, 0.03)" }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[11px] font-medium tracking-widest uppercase text-mist">
+          Message {messageNumber ?? action.id.replace(/\D/g, "")}
+        </p>
+        {status && (
+          <span className={`text-[11px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full
+            ${status === "accepted" ? "bg-confirm/10 text-confirm" : "bg-pending/15 text-pending"}`}>
+            {status === "accepted" ? "You agreed" : "You changed it"}
+          </span>
+        )}
+      </div>
+
+      {/* Customer message — with AI's cited phrases highlighted when reasoning is shown */}
+      <div className="bg-sand border border-hair rounded-xl px-5 py-4 mb-5">
+        <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-1.5">
+          A customer wrote
+        </p>
+        <p className="font-display text-lg leading-relaxed text-ink">
+          <HighlightedMessage
+            text={action.ticket_text}
+            highlights={showsReasoning ? action.highlights || [] : []}
+          />
+        </p>
+        {showsReasoning && (action.highlights?.length > 0) && (
+          <p className="text-[11px] text-mist mt-2">
+            <span className="inline-block w-2 h-2 rounded-sm bg-pending/40 mr-1.5 align-middle"></span>
+            Highlighted parts are what the AI focused on.
+          </p>
+        )}
+      </div>
+
+      {/* AI's suggestion */}
+      <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-1.5">
+        The AI thinks this message is about
+      </p>
+      <p className="font-display text-2xl text-ink mb-4">
         {status === "corrected" ? (
           <>
-            <span style={{ textDecoration: "line-through", color: "#888" }}>{action.label}</span>
-            {" → "}
-            {correctedCategory}
+            <span className="line-through text-mist mr-2">{current}</span>
+            <span className="text-pending">{corrected}</span>
           </>
-        ) : (
-          action.label
-        )}
+        ) : current}
       </p>
 
       {action.confidence !== undefined && (
-        <p style={{ fontSize: "14px", color: "#333", marginBottom: "8px" }}>
-          AI confidence: {Math.round(action.confidence * 100)}%
-        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-sm text-slate whitespace-nowrap">How sure the AI is</span>
+          <div className="flex-1 max-w-[160px] h-1.5 rounded-full bg-hair overflow-hidden">
+            <div className="h-full rounded-full bg-slate/60"
+                 style={{ width: `${Math.round(action.confidence * 100)}%` }} />
+          </div>
+          <span className="text-sm font-medium text-slate whitespace-nowrap">
+            {confidenceWord(action.confidence)} ({Math.round(action.confidence * 100)}%)
+          </span>
+        </div>
       )}
 
-      {action.reasoning && (
-        <div
-          style={{
-            marginBottom: "12px",
-            fontSize: "14px",
-            background: "#eef2ff",
-            borderLeft: "3px solid #2B5FE2",
-            padding: "12px",
-          }}
-        >
-          <p style={{ fontSize: "12px", fontWeight: "bold", color: "#2B5FE2", marginBottom: "4px" }}>
-            Why the AI suggested this:
-          </p>
-          <p>{action.reasoning}</p>
-          {action.citations?.length > 0 && (
-            <ul style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-              {action.citations.map((c, i) => (
-                <li key={i}>{c}</li>
-              ))}
-            </ul>
+      {/* Rich explanation block — only shown in the "with thinking" round */}
+      {showsReasoning && (
+        <div className="border border-hair rounded-xl overflow-hidden mb-5">
+          <div className="bg-sand px-4 py-3 border-b border-hair">
+            <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-1">
+              How the AI decided
+            </p>
+            <p className="text-sm leading-relaxed text-ink">
+              {action.reasoning}
+            </p>
+          </div>
+
+          {action.alternative && (
+            <div className="bg-card">
+              <button
+                type="button"
+                onClick={toggleAlt}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sand transition-colors"
+              >
+                <span className="text-sm text-slate">
+                  What else did the AI consider?
+                </span>
+                <span className="text-xs text-mist">
+                  {showAlternative ? "Hide" : "Show"}
+                </span>
+              </button>
+              {showAlternative && (
+                <div className="px-4 pb-4 pt-1 border-t border-hair">
+                  <p className="text-sm text-ink mb-1">
+                    <span className="text-slate">It also thought about </span>
+                    <span className="font-medium">{action.alternative.category}</span>
+                    <span className="text-slate"> — but went with {current} because:</span>
+                  </p>
+                  <p className="text-sm text-slate leading-relaxed">
+                    {action.alternative.why_not}
+                  </p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      <p style={{ fontSize: "14px", marginTop: "8px", marginBottom: "8px" }}>
-        Is the AI's category correct?
-      </p>
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button
-          onClick={handleAccept}
-          disabled={status === "accepted"}
-          style={{
-            padding: "8px 16px",
-            background: "#1F8A5A",
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-            opacity: status === "accepted" ? 0.5 : 1,
-          }}
-        >
-          Yes, correct
-        </button>
-        <button
-          onClick={() => setShowCategoryPicker((v) => !v)}
-          style={{
-            padding: "8px 16px",
-            background: "#eee",
-            border: "1px solid #ccc",
-            cursor: "pointer",
-          }}
-        >
-          No, it should be...
-        </button>
-        {status !== null && (
-          <button
-            onClick={handleUndo}
-            style={{
-              padding: "8px 16px",
-              background: "#fff3cd",
-              border: "1px solid #B8860B",
-              cursor: "pointer",
-            }}
-          >
-            Undo
-          </button>
-        )}
-      </div>
+      <div className="border-t border-hair pt-4">
+        <p className="text-sm font-medium text-ink mb-3">
+          Does that look right to you?
+        </p>
 
-      {showCategoryPicker && (
-        <div style={{ marginTop: "12px" }}>
-          <span style={{ fontSize: "14px", marginRight: "8px" }}>Correct category:</span>
-          <select onChange={(e) => handleEditSelect(e.target.value)} defaultValue="">
-            <option value="" disabled>
-              Choose one
-            </option>
-            {CATEGORIES.filter((c) => c !== action.label.split(" as ")[1]).map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button onClick={accept} disabled={status === "accepted"}
+            className="bg-confirm text-white text-sm font-medium px-4 py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-40">
+            Yes, that's right
+          </button>
+
+          {!picking ? (
+            <button onClick={() => setPicking(true)}
+              className="border border-line bg-card text-ink text-sm font-medium px-4 py-2.5 rounded-[10px] hover:bg-sand">
+              No, it should be…
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-line bg-sand">
+              <span className="text-sm text-slate">It should be:</span>
+              <select autoFocus defaultValue="" onChange={(e) => pick(e.target.value)}
+                className="text-sm border border-line rounded px-2 py-1 bg-card text-ink">
+                <option value="" disabled>Choose…</option>
+                {CATEGORIES.filter((c) => c !== current).map((c) =>
+                  <option key={c} value={c}>{c}</option>)}
+              </select>
+              <button onClick={() => setPicking(false)}
+                className="text-xs text-mist hover:text-slate">Cancel</button>
+            </div>
+          )}
+
+          {status !== null && (
+            <button onClick={undo}
+              className="ml-auto border border-pending/60 text-pending text-sm font-medium px-3.5 py-2 rounded-[10px] hover:bg-pending-soft">
+              Undo
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
