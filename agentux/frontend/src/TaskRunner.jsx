@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import ActionCard from "./components/ActionCard";
 import SurveyScreen from "./SurveyScreen";
-import { logEvent, BASE } from "./api"; // <-- import BASE here
+import { logEvent, BASE } from "./api";
 
 function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onComplete }) {
   const [data, setData] = useState(null);
@@ -25,7 +25,11 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
         setActions(d.actions);
       })
       .catch((err) => setError(err.message));
-  }, [sessionId, participantId, condition, scenarioVariant]);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [submitted, surveyDone]);
 
   const handleStatusChange = (id, status) => {
     setStatuses((s) => ({ ...s, [id]: status }));
@@ -36,9 +40,7 @@ function TaskRunner({ sessionId, participantId, condition, scenarioVariant, onCo
 
   const handleSubmit = () => {
     logEvent(sessionId, participantId, condition, "task_end", {
-      task_id: data.task_id,
-      decided_count: decidedCount,
-      total: actions.length,
+      task_id: data.task_id, decided_count: decidedCount, total: actions.length,
     });
     setSubmitted(true);
   };

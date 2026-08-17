@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BASE } from "./api"; // <-- import BASE here
+import { useState, useEffect } from "react";
+import { BASE } from "./api";
 
 const TRUST_QUESTIONS = [
   { key: "trust_1", text: "I trusted the AI's suggestions." },
@@ -51,6 +51,10 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const trustComplete = TRUST_QUESTIONS.every((q) => trust[q.key]);
   const susComplete = sus.every((v) => v !== null);
   const canSubmit = trustComplete && susComplete && sawReasoning && !submitting;
@@ -58,7 +62,7 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await fetch(`${BASE}/survey`, {   // <-- use BASE here
+      await fetch(`${BASE}/survey`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

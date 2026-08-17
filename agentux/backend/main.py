@@ -6,62 +6,54 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import anthropic, json, csv, io, os
 from datetime import datetime, timezone
-from logger import log, engine, Event
+from logger import log, engine, Event, Participant
 from sqlmodel import Session, select
 from typing import Optional
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        # add your production frontend URL here after deploying, e.g.:
+        # "https://your-agentux.vercel.app",
+    ],
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-client = anthropic.Anthropic()   # set ANTHROPIC_API_KEY env var
-
-# --- Participant counter ---
-COUNTER_FILE = "participant_counter.txt"
-
-def get_next_participant_number():
-    if not os.path.exists(COUNTER_FILE):
-        with open(COUNTER_FILE, "w") as f:
-            f.write("0")
-    with open(COUNTER_FILE, "r") as f:
-        current = int(f.read().strip() or "0")
-    next_num = current + 1
-    with open(COUNTER_FILE, "w") as f:
-        f.write(str(next_num))
-    return next_num
-
-# --- Participant registry (name + demographics -> number, for tracking who attempted) ---
-PARTICIPANTS_FILE = "participants.csv"
-
-def register_participant(name: str, participant_number: int, age_range: str, ai_familiarity: int):
-    file_exists = os.path.exists(PARTICIPANTS_FILE)
-    with open(PARTICIPANTS_FILE, "a", newline="") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["participant_number", "name", "age_range", "ai_familiarity", "registered_at"])
-        writer.writerow([participant_number, name, age_range, ai_familiarity, datetime.now(timezone.utc).isoformat()])
-
-@app.get("/register")
-def register(name: str, age_range: str = "unspecified", ai_familiarity: int = 0):
-    num = get_next_participant_number()
-    register_participant(name, num, age_range, ai_familiarity)
-    order = condition_order(num)
-    return {"participant_number": num, "order": order}
-
-@app.get("/next_participant")
-def next_participant():
-    num = get_next_participant_number()
-    order = condition_order(num)
-    return {"participant_number": num, "order": order}
+try:
+    client = anthropic.Anthropic()
+except Exception:
+    client = None
 
 # --- Health check route ---
 @app.get("/health")
 def health():
     return {"ok": True}
+
+# --- Participant registration (stored in DB, works across restarts) ---
+@app.get("/register")
+def register(name: str, age_range: str = "unspecified", ai_familiarity: int = 0):
+    with Session(engine) as s:
+        p = Participant(name=name, age_range=age_range, ai_familiarity=ai_familiarity)
+        s.add(p)
+        s.commit()
+        s.refresh(p)
+        num = p.id
+    order = condition_order(num)
+    return {"participant_number": num, "order": order}
+
+@app.get("/participants_export", response_class=PlainTextResponse)
+def participants_export():
+    with Session(engine) as s:
+        rows = s.exec(select(Participant)).all()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id", "name", "age_range", "ai_familiarity", "registered_at"])
+    for p in rows:
+        w.writerow([p.id, p.name, p.age_range, p.ai_familiarity, p.registered_at])
+    return buf.getvalue()
 
 class Turn(BaseModel):
     session_id: str
@@ -81,12 +73,15 @@ def log_event(evt: LogEvent):
     log(evt.session_id, evt.participant_id, evt.condition, evt.event_type, evt.payload)
     return {"ok": True}
 
-def sse(obj): 
+def sse(obj):
     return f"data: {json.dumps(obj)}\n\n"
 
-# --- Agent route ---
+# --- Agent route (disabled if no Anthropic key configured) ---
 @app.post("/agent")
 def agent(turn: Turn):
+    if client is None:
+        return {"error": "Agent route disabled (no API key configured)"}
+
     def gen():
         yield sse({"type": "state", "value": "thinking"})
         resp = client.messages.create(
@@ -162,7 +157,7 @@ class SurveyResponse(BaseModel):
     trust_2: int
     trust_3: int
     sus_scores: list[int]
-    saw_reasoning: str  # "yes" | "no" — manipulation check
+    saw_reasoning: str
     comments: Optional[str] = None
 
 @app.post("/survey")

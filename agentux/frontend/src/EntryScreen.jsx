@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BASE } from "./api"; // adjust path if needed
+import { BASE } from "./api";
 
 function EntryScreen({ onStart }) {
   const [name, setName] = useState("");
@@ -34,9 +34,7 @@ function EntryScreen({ onStart }) {
 
   return (
     <div className="max-w-md mx-auto p-6 mt-16 text-left">
-      <h1 className="font-display text-xl font-semibold mb-4 text-ink text-center">
-        Before you begin
-      </h1>
+      <h1 className="font-display text-xl font-semibold mb-4 text-ink text-center">Before you begin</h1>
 
       <label className="text-sm text-slate block mb-1">Your name</label>
       <input

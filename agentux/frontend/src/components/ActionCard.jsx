@@ -5,7 +5,6 @@ const CATEGORIES = ["Billing", "Technical", "Account"];
 
 function ActionCard({ action, session_id, participant_id, condition, onStatusChange }) {
   const [status, setStatus] = useState(null);
-  const [traceOpen, setTraceOpen] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [correctedCategory, setCorrectedCategory] = useState(null);
 
@@ -33,12 +32,6 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
     setCorrectedCategory(null);
     onStatusChange && onStatusChange(null);
     logEvent(session_id, participant_id, condition, "undo", { id: action.id });
-  };
-
-  const toggleTrace = () => {
-    const opening = !traceOpen;
-    setTraceOpen(opening);
-    if (opening) logEvent(session_id, participant_id, condition, "trace_opened", { id: action.id });
   };
 
   const cardStyle = {
@@ -76,49 +69,36 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
       </p>
 
       {action.confidence !== undefined && (
-        <p style={{ fontSize: "14px", color: "#333" }}>
+        <p style={{ fontSize: "14px", color: "#333", marginBottom: "8px" }}>
           AI confidence: {Math.round(action.confidence * 100)}%
         </p>
       )}
 
       {action.reasoning && (
-        <div style={{ marginTop: "8px" }}>
-          <button
-            onClick={toggleTrace}
-            style={{
-              fontSize: "14px",
-              color: "#2B5FE2",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            {traceOpen ? "Hide AI's reasoning" : "Why did the AI suggest this?"}
-          </button>
-          {traceOpen && (
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                background: "#f5f5f5",
-                padding: "12px",
-              }}
-            >
-              <p>{action.reasoning}</p>
-              {action.citations?.length > 0 && (
-                <ul style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-                  {action.citations.map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
+        <div
+          style={{
+            marginBottom: "12px",
+            fontSize: "14px",
+            background: "#eef2ff",
+            borderLeft: "3px solid #2B5FE2",
+            padding: "12px",
+          }}
+        >
+          <p style={{ fontSize: "12px", fontWeight: "bold", color: "#2B5FE2", marginBottom: "4px" }}>
+            Why the AI suggested this:
+          </p>
+          <p>{action.reasoning}</p>
+          {action.citations?.length > 0 && (
+            <ul style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
+              {action.citations.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
           )}
         </div>
       )}
 
-      <p style={{ fontSize: "14px", marginTop: "16px", marginBottom: "8px" }}>
+      <p style={{ fontSize: "14px", marginTop: "8px", marginBottom: "8px" }}>
         Is the AI's category correct?
       </p>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
