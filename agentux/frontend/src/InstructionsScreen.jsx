@@ -9,13 +9,13 @@ function InstructionsScreen({ onAgree }) {
 
       <div className="text-sm text-slate space-y-3 mb-6 font-body">
         <p>
-          You'll be reviewing AI-generated recommendations for 10 customer
-          support tickets, twice, with a short survey after each set.
+          You'll be reviewing AI-generated category suggestions for customer
+          support tickets, in two short rounds, with a brief survey after each.
         </p>
         <p>
-          For each ticket, an AI agent suggests how it should be categorized.
-          Some suggestions may be incorrect — your job is to accept, reject,
-          or edit each one based on your own judgment.
+          For each ticket, an AI has suggested a category. Some suggestions may
+          be incorrect — your job is to say whether the suggestion is correct,
+          or pick the right category yourself if it isn't.
         </p>
         <p>
           Depending on the round, you may or may not see the AI's reasoning
@@ -23,8 +23,9 @@ function InstructionsScreen({ onAgree }) {
         </p>
         <p>
           Your interactions (clicks, edits, timing) will be recorded for
-          research purposes. No personally identifying information is
-          collected — only a participant number you were given.
+          research purposes, along with your name, which will be kept
+          separate from your response data and used only to confirm
+          participation.
         </p>
         <p>
           Participation is voluntary. You may stop at any time by closing

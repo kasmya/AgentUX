@@ -1,45 +1,44 @@
 import { useState } from "react";
 
 const TRUST_QUESTIONS = [
-  { key: "trust_1", text: "I trusted the agent's suggestions." },
-  { key: "trust_2", text: "I felt in control of the agent's actions." },
-  { key: "trust_3", text: "I understood why the agent made its suggestions." },
+  { key: "trust_1", text: "I trusted the AI's suggestions." },
+  { key: "trust_2", text: "I felt in control of what happened with each suggestion." },
+  { key: "trust_3", text: "I understood why the AI made its suggestions." },
 ];
 
 const SUS_ITEMS = [
-  "I think that I would like to use this system frequently.",
-  "I found the system unnecessarily complex.",
-  "I thought the system was easy to use.",
-  "I think that I would need support to use this system.",
-  "I found the various functions in this system were well integrated.",
-  "I thought there was too much inconsistency in this system.",
-  "I would imagine that most people would learn to use this system very quickly.",
-  "I found the system very cumbersome to use.",
-  "I felt very confident using the system.",
-  "I needed to learn a lot of things before I could get going with this system.",
+  "I would like to use a system like this often.",
+  "The system felt unnecessarily complicated.",
+  "The system was easy to use.",
+  "I would need help from someone to use this system.",
+  "The different parts of this system worked well together.",
+  "There was too much inconsistency in this system.",
+  "Most people would learn to use this system quickly.",
+  "The system felt awkward or cumbersome to use.",
+  "I felt confident using the system.",
+  "I had to learn a lot before I could use this system.",
 ];
 
 function ScaleInput({ name, value, onChange, max, lowLabel, highLabel }) {
   return (
-    <div className="flex items-center gap-3 mt-2">
-      <span className="text-xs text-slate w-24">{lowLabel}</span>
-      {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-        <label
-          key={n}
-          className="flex flex-col items-center text-xs text-slate cursor-pointer"
-        >
-          <input
-            type="radio"
-            name={name}
-            value={n}
-            checked={value === n}
-            onChange={() => onChange(n)}
-            className="w-5 h-5 accent-signal cursor-pointer rounded-none"
-          />
-          <span className="font-mono">{n}</span>
-        </label>
-      ))}
-      <span className="text-xs text-slate w-24 text-right">{highLabel}</span>
+    <div className="flex items-center justify-between mt-3 max-w-md">
+      <span className="text-xs text-gray-400 w-28">{lowLabel}</span>
+      <div className="flex gap-4">
+        {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+          <label key={n} className="flex flex-col items-center text-xs text-gray-600 cursor-pointer">
+            <input
+              type="radio"
+              name={name}
+              value={n}
+              checked={value === n}
+              onChange={() => onChange(n)}
+              className="w-5 h-5 accent-purple-600 cursor-pointer mb-1"
+            />
+            {n}
+          </label>
+        ))}
+      </div>
+      <span className="text-xs text-gray-400 w-28 text-right">{highLabel}</span>
     </div>
   );
 }
@@ -47,12 +46,13 @@ function ScaleInput({ name, value, onChange, max, lowLabel, highLabel }) {
 function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
   const [trust, setTrust] = useState({});
   const [sus, setSus] = useState(Array(10).fill(null));
+  const [sawReasoning, setSawReasoning] = useState("");
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const trustComplete = TRUST_QUESTIONS.every((q) => trust[q.key]);
   const susComplete = sus.every((v) => v !== null);
-  const canSubmit = trustComplete && susComplete && !submitting;
+  const canSubmit = trustComplete && susComplete && sawReasoning && !submitting;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -68,6 +68,7 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
           trust_2: trust.trust_2,
           trust_3: trust.trust_3,
           sus_scores: sus,
+          saw_reasoning: sawReasoning,
           comments: comments || null,
         }),
       });
@@ -79,17 +80,52 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="font-display text-2xl font-semibold mb-2 text-ink">Quick survey</h1>
-      <p className="text-sm text-slate mb-6">
-        Rate your experience with this version of the task.
+    <div className="max-w-2xl mx-auto p-8">
+      <h1 className="text-2xl font-semibold mb-2">Quick survey</h1>
+      <p className="text-sm text-slate mb-8">
+        Rate each statement from 1 (strongly disagree) to the highest number (strongly agree).
       </p>
 
-      <div className="mb-8 border-t border-line pt-4">
-        <h2 className="text-sm font-medium text-slate mb-3">Trust & control</h2>
+      <div className="mb-8">
+        <h2 className="text-base font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+          This round
+        </h2>
+        <p className="text-sm text-gray-800 mb-2">
+          Did you see the AI's reasoning and confidence for its suggestions in this round?
+        </p>
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="saw_reasoning"
+              value="yes"
+              checked={sawReasoning === "yes"}
+              onChange={() => setSawReasoning("yes")}
+              className="w-4 h-4 accent-purple-600 cursor-pointer"
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="saw_reasoning"
+              value="no"
+              checked={sawReasoning === "no"}
+              onChange={() => setSawReasoning("no")}
+              className="w-4 h-4 accent-purple-600 cursor-pointer"
+            />
+            No
+          </label>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-base font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+          Trust & control
+        </h2>
         {TRUST_QUESTIONS.map((q) => (
-          <div key={q.key} className="mb-4">
-            <p className="text-sm text-ink">{q.text}</p>
+          <div key={q.key} className="mb-5">
+            <p className="text-sm text-gray-800 mb-1">{q.text}</p>
             <ScaleInput
               name={q.key}
               value={trust[q.key]}
@@ -102,19 +138,17 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         ))}
       </div>
 
-      <div className="mb-8 border-t border-line pt-4">
-        <h2 className="text-sm font-medium text-slate mb-3">
-          Usability (System Usability Scale)
+      <div className="mb-8">
+        <h2 className="text-base font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+          Usability
         </h2>
         {SUS_ITEMS.map((text, i) => (
-          <div key={i} className="mb-4">
-            <p className="text-sm text-ink">{text}</p>
+          <div key={i} className="mb-5">
+            <p className="text-sm text-gray-800 mb-1">{text}</p>
             <ScaleInput
               name={`sus_${i}`}
               value={sus[i]}
-              onChange={(v) =>
-                setSus((s) => s.map((val, idx) => (idx === i ? v : val)))
-              }
+              onChange={(v) => setSus((s) => s.map((val, idx) => (idx === i ? v : val)))}
               max={5}
               lowLabel="Strongly disagree"
               highLabel="Strongly agree"
@@ -123,14 +157,14 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         ))}
       </div>
 
-      <div className="mb-6 border-t border-line pt-4">
-        <label className="text-sm font-medium text-slate block mb-2">
-          Any other comments? (optional)
+      <div className="mb-8">
+        <label className="text-sm font-semibold text-gray-800 block mb-2">
+          Anything else you'd like to share? (optional)
         </label>
         <textarea
           value={comments}
           onChange={(e) => setComments(e.target.value)}
-          className="w-full border border-line bg-paper p-2 text-sm"
+          className="w-full border border-gray-300 rounded-lg p-3 text-sm"
           rows={3}
         />
       </div>
@@ -139,7 +173,7 @@ function SurveyScreen({ sessionId, participantId, condition, onSubmit }) {
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
-        className="px-4 py-2 rounded-none bg-signal text-white text-sm hover:opacity-90 disabled:opacity-30 w-full"
+        className="px-4 py-3 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-40 w-full"
       >
         {submitting ? "Submitting..." : "Submit survey"}
       </button>

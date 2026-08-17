@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import anthropic, json, csv, io, os
+from datetime import datetime, timezone
 from logger import log, engine, Event
 from sqlmodel import Session, select
 from typing import Optional
@@ -32,6 +33,24 @@ def get_next_participant_number():
     with open(COUNTER_FILE, "w") as f:
         f.write(str(next_num))
     return next_num
+
+# --- Participant registry (name + demographics -> number, for tracking who attempted) ---
+PARTICIPANTS_FILE = "participants.csv"
+
+def register_participant(name: str, participant_number: int, age_range: str, ai_familiarity: int):
+    file_exists = os.path.exists(PARTICIPANTS_FILE)
+    with open(PARTICIPANTS_FILE, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["participant_number", "name", "age_range", "ai_familiarity", "registered_at"])
+        writer.writerow([participant_number, name, age_range, ai_familiarity, datetime.now(timezone.utc).isoformat()])
+
+@app.get("/register")
+def register(name: str, age_range: str = "unspecified", ai_familiarity: int = 0):
+    num = get_next_participant_number()
+    register_participant(name, num, age_range, ai_familiarity)
+    order = condition_order(num)
+    return {"participant_number": num, "order": order}
 
 @app.get("/next_participant")
 def next_participant():
@@ -143,6 +162,7 @@ class SurveyResponse(BaseModel):
     trust_2: int
     trust_3: int
     sus_scores: list[int]
+    saw_reasoning: str  # "yes" | "no" — manipulation check
     comments: Optional[str] = None
 
 @app.post("/survey")
@@ -152,6 +172,7 @@ def submit_survey(resp: SurveyResponse):
         "trust_2": resp.trust_2,
         "trust_3": resp.trust_3,
         "sus_scores": resp.sus_scores,
+        "saw_reasoning": resp.saw_reasoning,
         "comments": resp.comments,
     }
     log(resp.session_id, resp.participant_id, resp.condition, "survey_submitted", payload)
