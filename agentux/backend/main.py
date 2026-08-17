@@ -28,12 +28,10 @@ except Exception:
 
 RESET_SECRET = os.environ.get("RESET_SECRET", "changeme123")
 
-# --- Health check route ---
 @app.get("/health")
 def health():
     return {"ok": True}
 
-# --- Reset route (wipes all data, protected by secret) ---
 @app.post("/reset")
 def reset_data(secret: str):
     if secret != RESET_SECRET:
@@ -46,7 +44,6 @@ def reset_data(secret: str):
         s.commit()
     return {"ok": True, "message": "all data wiped"}
 
-# --- Participant registration (stored in DB, works across restarts) ---
 @app.get("/register")
 def register(name: str, age_range: str = "unspecified", ai_familiarity: int = 0):
     with Session(engine) as s:
@@ -90,7 +87,6 @@ def log_event(evt: LogEvent):
 def sse(obj):
     return f"data: {json.dumps(obj)}\n\n"
 
-# --- Agent route (disabled if no Anthropic key configured) ---
 @app.post("/agent")
 def agent(turn: Turn):
     if client is None:
@@ -119,7 +115,6 @@ def agent(turn: Turn):
         yield sse({"type": "state", "value": "done"})
     return StreamingResponse(gen(), media_type="text/event-stream")
 
-# --- Scenario route ---
 @app.get("/scenario")
 def get_scenario(session_id: str, participant_id: str, condition: str, scenario: str = "ticket_triage_v1"):
     data = SCENARIOS.get(scenario, SCENARIOS["ticket_triage_v1"])
@@ -180,3 +175,9 @@ def submit_survey(resp: SurveyResponse):
         "trust_1": resp.trust_1,
         "trust_2": resp.trust_2,
         "trust_3": resp.trust_3,
+        "sus_scores": resp.sus_scores,
+        "saw_reasoning": resp.saw_reasoning,
+        "comments": resp.comments,
+    }
+    log(resp.session_id, resp.participant_id, resp.condition, "survey_submitted", payload)
+    return {"ok": True}
