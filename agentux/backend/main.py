@@ -15,8 +15,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        # add your production frontend URL here after deploying, e.g.:
-        # "https://your-agentux.vercel.app",
+        "https://agent-ux-tau.vercel.app",
     ],
     allow_methods=["*"],
     allow_headers=["*"]
