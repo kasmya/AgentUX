@@ -28,7 +28,7 @@ SCENARIO = {
         {"id": "t2", "label": "Tag #2 as Billing", "is_correct": False,
          "ticket_text": "phone won't charge",
          "confidence": 0.88,
-         "reasoning": "The customer uses the word 'charge', which usually points to a payment or Billing issue.",
+         "reasoning": "The customer's message mentions 'charge', which often relates to Billing.",
          "highlights": ["charge"],
          "alternative": {
              "category": "Technical",
@@ -61,7 +61,7 @@ SCENARIO = {
         {"id": "t5", "label": "Tag #5 as Technical", "is_correct": False,
          "ticket_text": "discount code not working",
          "confidence": 0.86,
-         "reasoning": "The customer says something is 'not working', which usually describes a Technical fault or bug.",
+         "reasoning": "The customer says something is 'not working', which sounds like a Technical fault.",
          "highlights": ["not working"],
          "alternative": {
              "category": "Billing",
@@ -94,7 +94,7 @@ SCENARIO = {
         {"id": "t8", "label": "Tag #8 as Account", "is_correct": False,
          "ticket_text": "account balance charged twice",
          "confidence": 0.87,
-         "reasoning": "The customer mentions their 'account balance', which suggests this is about their Account.",
+         "reasoning": "The customer mentions their 'account balance', which suggests an Account issue.",
          "highlights": ["account balance"],
          "alternative": {
              "category": "Billing",
@@ -144,7 +144,7 @@ SCENARIO_V2 = {
         {"id": "t2", "label": "Tag #2 as Account", "is_correct": False,
          "ticket_text": "profile shows wrong plan, overcharged",
          "confidence": 0.87,
-         "reasoning": "The customer refers to their 'profile', which usually points to Account information.",
+         "reasoning": "The customer refers to their 'profile', which points to Account information.",
          "highlights": ["profile"],
          "alternative": {
              "category": "Billing",
@@ -177,7 +177,7 @@ SCENARIO_V2 = {
         {"id": "t5", "label": "Tag #5 as Technical", "is_correct": False,
          "ticket_text": "error message says payment declined",
          "confidence": 0.85,
-         "reasoning": "The customer mentions seeing an 'error message', which usually points to a Technical problem.",
+         "reasoning": "The customer mentions seeing an 'error message', which suggests a Technical problem.",
          "highlights": ["error message"],
          "alternative": {
              "category": "Billing",
@@ -210,7 +210,7 @@ SCENARIO_V2 = {
         {"id": "t8", "label": "Tag #8 as Technical", "is_correct": False,
          "ticket_text": "billing page won't load",
          "confidence": 0.86,
-         "reasoning": "A page that 'won't load' is usually a Technical problem with the site or app.",
+         "reasoning": "The customer says a page 'won't load', which sounds like a Technical problem.",
          "highlights": ["won't load"],
          "alternative": {
              "category": "Billing",
