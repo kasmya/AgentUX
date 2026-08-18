@@ -1,9 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { BASE } from "./api";
 
 const CARD_SHADOW = "0 1px 2px rgba(60, 50, 30, 0.04), 0 4px 12px rgba(60, 50, 30, 0.03)";
 
 function InstructionsScreen({ onAgree }) {
   const [agreed, setAgreed] = useState(false);
+
+  // Warm the backend as soon as the study loads.
+  // Render free-tier services sleep after ~15min of no traffic; the first
+  // request to a sleeping service can take 30–90 seconds to boot the Python
+  // process. Pinging /health here means by the time the participant finishes
+  // reading these instructions and enters their details, the backend is
+  // usually already awake.
+  useEffect(() => {
+    fetch(`${BASE}/health`).catch(() => {
+      // Silent — real errors will surface on /register if the backend is truly down.
+    });
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto p-6 pt-12">

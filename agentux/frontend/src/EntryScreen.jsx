@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BASE } from "./api";
 
 const CARD_SHADOW = "0 1px 2px rgba(60, 50, 30, 0.04), 0 4px 12px rgba(60, 50, 30, 0.03)";
@@ -8,14 +8,28 @@ function EntryScreen({ onStart }) {
   const [ageRange, setAgeRange] = useState("");
   const [aiFamiliarity, setAiFamiliarity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [error, setError] = useState(null);
+  const slowTimerRef = useRef(null);
 
   const canStart = name.trim() && ageRange && aiFamiliarity;
+
+  // Second warm-up ping in case the user paused on the instructions screen
+  // long enough for the backend to have gone back to sleep between screens.
+  useEffect(() => {
+    fetch(`${BASE}/health`).catch(() => {});
+  }, []);
 
   const handleStart = async () => {
     if (!canStart) return;
     setLoading(true);
+    setLoadingSlow(false);
     setError(null);
+
+    // If /register takes more than 3 seconds, swap the button text to the
+    // "waking up server" message so participants know nothing is broken.
+    slowTimerRef.current = setTimeout(() => setLoadingSlow(true), 3000);
+
     try {
       const url = `${BASE}/register?name=${encodeURIComponent(name.trim())}&age_range=${encodeURIComponent(ageRange)}&ai_familiarity=${aiFamiliarity}`;
       const res = await fetch(url);
@@ -26,11 +40,20 @@ function EntryScreen({ onStart }) {
         conditionOrder: data.order,
       });
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again in a few seconds.");
       console.error(err);
+    } finally {
+      clearTimeout(slowTimerRef.current);
+      setLoading(false);
+      setLoadingSlow(false);
     }
-    setLoading(false);
   };
+
+  const buttonText = !loading
+    ? "Start the study"
+    : loadingSlow
+      ? "Waking up the server, this can take up to a minute…"
+      : "Starting…";
 
   return (
     <div className="max-w-md mx-auto p-6 pt-16">
@@ -108,7 +131,7 @@ function EntryScreen({ onStart }) {
           disabled={!canStart || loading}
           className="w-full bg-confirm text-white text-[15px] font-medium py-3 rounded-[10px] hover:opacity-90 disabled:opacity-30 transition-opacity"
         >
-          {loading ? "Starting…" : "Start the study"}
+          {buttonText}
         </button>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { logEvent } from "../api";
 
 const CATEGORIES = ["Billing", "Technical", "Account", "Other"];
@@ -11,8 +11,6 @@ const confidenceWord = (c) => {
 };
 
 // Highlights the AI's cited phrases inside the customer's message.
-// action.highlights should be an array of exact substrings from ticket_text.
-// Falls back gracefully to plain text if not provided.
 function HighlightedMessage({ text, highlights = [] }) {
   if (!highlights.length) return <>"{text}"</>;
 
@@ -51,6 +49,15 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
 
   const current = action.label.split(" as ")[1];
   const showsReasoning = !!action.reasoning;
+
+  // Log when this card first appears — used for time-per-decision analysis.
+  useEffect(() => {
+    logEvent(session_id, participant_id, condition, "card_viewed", {
+      id: action.id,
+      ts_client: Date.now(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const accept = () => {
     setStatus("accepted"); setPicking(false);
@@ -98,7 +105,6 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
         )}
       </div>
 
-      {/* Customer message — with AI's cited phrases highlighted when reasoning is shown */}
       <div className="bg-sand border border-hair rounded-xl px-5 py-4 mb-5">
         <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-1.5">
           A customer wrote
@@ -117,7 +123,6 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
         )}
       </div>
 
-      {/* AI's suggestion */}
       <p className="text-[11px] font-medium tracking-widest uppercase text-mist mb-1.5">
         The AI thinks this message is about
       </p>
@@ -131,19 +136,15 @@ function ActionCard({ action, session_id, participant_id, condition, onStatusCha
       </p>
 
       {action.confidence !== undefined && (
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-slate whitespace-nowrap">How sure the AI is</span>
-          <div className="flex-1 max-w-[160px] h-1.5 rounded-full bg-hair overflow-hidden">
-            <div className="h-full rounded-full bg-slate/60"
-                 style={{ width: `${Math.round(action.confidence * 100)}%` }} />
-          </div>
-          <span className="text-sm font-medium text-slate whitespace-nowrap">
-            {confidenceWord(action.confidence)} ({Math.round(action.confidence * 100)}%)
+        <p className="text-sm mb-4">
+          <span className="text-mist">How sure the AI is: </span>
+          <span className="font-medium text-ink">
+            {confidenceWord(action.confidence)}
           </span>
-        </div>
+          <span className="text-mist"> ({Math.round(action.confidence * 100)}%)</span>
+        </p>
       )}
 
-      {/* Rich explanation block — only shown in the "with thinking" round */}
       {showsReasoning && (
         <div className="border border-hair rounded-xl overflow-hidden mb-5">
           <div className="bg-sand px-4 py-3 border-b border-hair">
