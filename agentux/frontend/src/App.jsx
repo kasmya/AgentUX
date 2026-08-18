@@ -2,21 +2,19 @@ import { useState } from "react";
 import InstructionsScreen from "./InstructionsScreen";
 import EntryScreen from "./EntryScreen";
 import TaskRunner from "./TaskRunner";
+import PreferenceScreen from "./PreferenceScreen";
 
 function App() {
   const [agreed, setAgreed] = useState(false);
   const [session, setSession] = useState(null); // { participantId, sessionId, conditionOrder }
-  const [phase, setPhase] = useState(0); // 0 = first condition, 1 = second condition
+  const [phase, setPhase] = useState(0); // 0 = round 1, 1 = round 2, 2 = preference
   const [finished, setFinished] = useState(false);
 
   const handleStart = (s) => setSession(s);
 
   const handlePhaseComplete = () => {
-    if (phase === 0) {
-      setPhase(1);
-    } else {
-      setFinished(true);
-    }
+    if (phase === 0) setPhase(1);
+    else if (phase === 1) setPhase(2);
   };
 
   if (!agreed) return <InstructionsScreen onAgree={() => setAgreed(true)} />;
@@ -35,6 +33,16 @@ function App() {
     );
   }
 
+  if (phase === 2) {
+    return (
+      <PreferenceScreen
+        sessionId={session.sessionId}
+        participantId={session.participantId}
+        onSubmit={() => setFinished(true)}
+      />
+    );
+  }
+
   const condition = session.conditionOrder[phase];
   const scenarioVariant = phase === 0 ? "ticket_triage_v1" : "ticket_triage_v2";
 
@@ -50,4 +58,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

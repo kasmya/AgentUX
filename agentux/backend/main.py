@@ -189,3 +189,35 @@ def submit_survey(resp: SurveyResponse):
     }
     log(resp.session_id, resp.participant_id, resp.condition, "survey_submitted", payload)
     return {"ok": True}
+
+
+class PreferenceResponse(BaseModel):
+    session_id: str
+    participant_id: str
+    preferred_condition: str      # "transparency_on" or "transparency_off"
+    preferred_label: str          # participant-facing label they saw, for auditing
+    comment: Optional[str] = None
+
+@app.post("/preference")
+def submit_preference(resp: PreferenceResponse):
+    # Duplicate-submission protection: if this participant already has a
+    # preference_submitted event, do not log a second one. Mirrors how
+    # task_start would be handled if you were guarding it.
+    with Session(engine) as s:
+        existing = s.exec(
+            select(Event).where(
+                Event.participant_id == resp.participant_id,
+                Event.event_type == "preference_submitted",
+            )
+        ).first()
+        if existing:
+            return {"ok": True, "duplicate": True}
+
+    payload = {
+        "preferred_condition": resp.preferred_condition,
+        "preferred_label": resp.preferred_label,
+        "comment": resp.comment,
+    }
+    # condition column stores "post_study" for this event — it's not a task condition
+    log(resp.session_id, resp.participant_id, "post_study", "preference_submitted", payload)
+    return {"ok": True, "duplicate": False}
